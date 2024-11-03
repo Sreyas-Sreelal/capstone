@@ -136,7 +136,7 @@ REST_FRAMEWORK = {
 
 SIMPLE_JWT = {
     'USER_ID_FIELD': 'user_id',
-    'ACCESS_TOKEN_LIFETIME': datetime.timedelta(seconds=5),
+    'ACCESS_TOKEN_LIFETIME': datetime.timedelta(days=5),
     'REFRESH_TOKEN_LIFETIME': datetime.timedelta(days=5),
     'ROTATE_REFRESH_TOKENS': True,
     'TOKEN_OBTAIN_SERIALIZER': 'authentication.serializers.CustomTokenObtainPairSerliazer',
