@@ -3,6 +3,7 @@ from django.db import models
 
 class Classroom(models.Model):
     class_id = models.UUIDField(primary_key=True)
+    title = models.TextField(null=True)
     manager_id = models.ForeignKey('authentication.User',on_delete=models.SET_NULL,null=True,related_name='class_manager')
     # member = models.CharField()
     # empid of the trainer
