@@ -9,7 +9,6 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 import datetime
-import bcrypt
 
 from authentication.models import User
 
