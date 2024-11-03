@@ -1,8 +1,8 @@
 from django.db import models
-
+import uuid
 
 class Classroom(models.Model):
-    class_id = models.UUIDField(primary_key=True)
+    class_id = models.UUIDField(primary_key=True,unique=True,default=uuid.uuid4 )
     title = models.TextField(null=True)
     manager_id = models.ForeignKey('authentication.User',on_delete=models.SET_NULL,null=True,related_name='class_manager')
     # member = models.CharField()
