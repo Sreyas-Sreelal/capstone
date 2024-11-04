@@ -1,11 +1,13 @@
-from django.shortcuts import render
+from django.shortcuts import render,get_object_or_404
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework_simplejwt.tokens import AccessToken
+from rest_framework.viewsets import ModelViewSet
+from rest_framework.decorators import action
 from . import models
-from . import serializer
+from . import serializers
 
 # Create your views here.
 
@@ -85,6 +87,25 @@ def create_course(request: Request):
                         )
                         new_assessment.questions.add(new_question)
 
-        return Response({"ok": True, "course": serializer.CourseSerializer(new_course).data})
+        return Response({"ok": True, "course": serializers.CourseSerializer(new_course).data})
     except Exception as e:
         return Response({"ok": False, "error": str(e)})
+
+# incredibly inefficient, but since time is not in favour, we can just go with it for now
+# instead we should fetch only course ids and implement another routes for each course details
+# may be we can use ViewSet to simplify? (thoughts for later!)
+# also with pagination?
+@api_view(['GET'])
+def get_courses(request:Request):
+    pass
+
+class CourseViewSet(ModelViewSet):
+    queryset = models.Course.objects.all()
+    serializer_class = serializers.CourseSerializer
+    permission_classes = [IsAuthenticated]
+    
+    @action(detail=True,methods=['GET'])
+    def view_modules(self,request:Request,pk=None):
+        modules = self.get_object().modules.all()
+        return Response(serializers.ModuleSerializer(modules,many=True).data)
+
