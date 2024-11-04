@@ -20,4 +20,4 @@ class ClassMember(models.Model):
 class ClassCourse(models.Model):
     sno = models.AutoField(primary_key=True)
     class_id = models.ForeignKey(Classroom, on_delete=models.CASCADE)
-    #course_id = models.ForeignKey('course.Course', on_delete=models.CASCADE)
+    course_id = models.ForeignKey('course.Course', on_delete=models.CASCADE)

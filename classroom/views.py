@@ -7,7 +7,7 @@ from rest_framework.permissions import IsAuthenticated
 from . import models
 from rest_framework_simplejwt.tokens import AccessToken
 from authentication.models import User
-
+from course.models import Course
 
 # Create your views here.
 
@@ -49,7 +49,7 @@ def create_classroom(request: Request):
                                member=User(pk=member)).save()
         for course in request.data['members']:
             models.ClassCourse(class_id=new_class,
-                               course_id=course).save()
+                               course_id=Course(pk=course)).save()
     except Exception as e:
         print("Error", e)
         return Response({"ok": False, "error": str(e)}, status=500)
