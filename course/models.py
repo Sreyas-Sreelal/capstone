@@ -35,4 +35,16 @@ class Assesment(models.Model):
 
 class UserProgress(models.Model):
     pass
+    #passstatus 
+    # employee id
+    #assestment id
+    #attemped 
+    # percentage (chapter)
+    # score (out of 100)
     
+
+class ChapterUser(models.Model):
+    #userid
+    #chapterid
+    #Attempted
+    pass
