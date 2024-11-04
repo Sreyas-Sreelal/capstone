@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 
 from pathlib import Path
+import datetime
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -37,7 +38,10 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'authentication'
+    'rest_framework',
+    'rest_framework_simplejwt',
+    'authentication',
+    'classroom',
 ]
 
 MIDDLEWARE = [
@@ -122,3 +126,30 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'authentication.backends.CustomTokenAuthentication',
+    )
+}
+
+
+SIMPLE_JWT = {
+    'USER_ID_FIELD': 'user_id',
+    'ACCESS_TOKEN_LIFETIME': datetime.timedelta(days=5),
+    'REFRESH_TOKEN_LIFETIME': datetime.timedelta(days=5),
+    'ROTATE_REFRESH_TOKENS': True,
+    'TOKEN_OBTAIN_SERIALIZER': 'authentication.serializers.CustomTokenObtainPairSerliazer',
+    "TOKEN_REFRESH_SERIALIZER": 'authentication.serializers.CustomTokenRefreshSerializer',
+    'USER_ID_FIELD': 'user_id',
+    'AUTH_HEADER_NAME': 'token',
+}
+
+SESSION_COOKIE_HTTPONLY = True
+CSRF_COOKIE_HTTPONLY = True
+
+AUTH_USER_MODEL = "authentication.User"
+
+PASSWORD_HASHERS = [
+    'django.contrib.auth.hashers.BCryptPasswordHasher',
+]
