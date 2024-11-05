@@ -15,4 +15,4 @@ class Classroom(models.Model):
         on_delete=models.SET_NULL, 
         null=True)
     members = models.ManyToManyField('authentication.User',related_name="class_members")
-    courses = models.ManyToManyField('course.Course',related_name="class_courses")
+    #courses = models.ManyToManyField('course.Course',related_name="class_courses")
