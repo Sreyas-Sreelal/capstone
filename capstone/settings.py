@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'course',
     'rest_framework',
+    'corsheaders',
     'rest_framework_simplejwt',
     'authentication',
     'classroom',
@@ -53,6 +54,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
 ]
 
 ROOT_URLCONF = 'capstone.urls'
@@ -145,6 +147,17 @@ SIMPLE_JWT = {
     'USER_ID_FIELD': 'user_id',
     'AUTH_HEADER_NAME': 'token',
 }
+
+CORS_ALLOW_CREDENTIALS = True
+
+CORS_ALLOW_HEADERS = [
+    "token",
+    "content-type",
+    "authorization"
+]
+CORS_ALLOWED_ORIGINS = [
+    'http://localhost:5173',
+]
 
 SESSION_COOKIE_HTTPONLY = True
 CSRF_COOKIE_HTTPONLY = True

@@ -28,9 +28,9 @@ class LoginView(TokenObtainPairView):
                 'refresh_token',
                 refresh_token,
                 httponly=True,
-                #secure=True,
+                # secure=True,
                 path="/auth/refresh",
-                #samesite="None",
+                # samesite="None",
                 expires=datetime.timedelta(days=15),
                 max_age=3000
             )
@@ -66,7 +66,7 @@ class RefreshTokenView(TokenRefreshView):
 
 @api_view(['POST'])
 def register(request: Request):
-    if User.objects.filter(username=request.data['user_name']).exists():
+    if User.objects.filter(username=request.data['username']).exists():
         return Response({"ok": False, "error": "Username already registered!"})
     if User.objects.filter(email_id=request.data['email_id']).exists():
         return Response({"ok": False, "error": "Emailid already registered!"})
@@ -75,7 +75,7 @@ def register(request: Request):
 
     try:
         User.objects.create_user(
-            username=request.data['user_name'],
+            username=request.data['username'],
             email_id=request.data['email_id'],
             password=request.data['password']
         )

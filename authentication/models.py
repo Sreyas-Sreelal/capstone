@@ -15,7 +15,7 @@ class User(AbstractUser):
         default=None,
         blank=True
     )
-    role = models.CharField(max_length=200, null=True)
+    role = models.CharField(max_length=200, default='employee')
     email_id = models.EmailField(unique=True)
     password = models.CharField(max_length=72)
 
