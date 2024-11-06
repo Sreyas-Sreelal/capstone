@@ -20,3 +20,14 @@ class ClassroomSerializer(serializers.ModelSerializer):
     class Meta:
         fields = "__all__"
         model = models.Classroom        
+
+class UserAttendanceSerializer(serializers.ModelSerializer):
+    class Meta:
+        fields = '__all__'
+        model = models.UserAttendance
+
+class ClassRooomAttendanceSerializer(serializers.ModelSerializer):
+    employee_statues = UserAttendanceSerializer(many=True,read_only=True)
+    class Meta:
+        fields = '__all__'
+        model = models.ClassRoomAttendance
