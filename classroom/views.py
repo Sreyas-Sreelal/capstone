@@ -1,12 +1,15 @@
+from xml.etree.ElementInclude import include
 from django.shortcuts import render
 from django.forms.models import model_to_dict
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework.decorators import api_view, permission_classes, action
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import viewsets
+from authentication.serializers import UserSerializer
 from classroom.serializers import ClassroomSerializer, CurriculumSerializer
 from . import models
+from . import serializers
 from rest_framework_simplejwt.tokens import AccessToken
 from authentication.models import User
 from course.models import Course
@@ -75,12 +78,10 @@ def create_classroom(request: Request):
     if access_token.payload['role'] != 'manager':
         return Response({"ok": False, "error": "You are not allowed to perform this operation"}, status=401)
 
-  
     user: User = User.objects.get(user_id=request.data['trainer_id'])
     if user.role != 'trainer':
         return Response({"ok": False, "error": "Specified user is not a trainer!"}, status=500)
 
-  
     new_curriculum = models.Curriculum.objects.create()
 
     for module in request.data['modules']:
@@ -103,7 +104,6 @@ def create_classroom(request: Request):
     for member in request.data['members']:
         new_class.members.add(User.objects.get(pk=member))
     return Response({"ok": True})
-    
 
 
 @api_view(['POST'])
@@ -138,4 +138,24 @@ def view_classrooms(request: Request):
         manager_id=access_token.payload['user_id']
     ).all()
 
-    return Response({"ok": True, "classrooms": ClassroomSerializer(classrooms,many=True).data})
+    return Response({"ok": True, "classrooms": ClassroomSerializer(classrooms, many=True).data})
+
+
+class CurriculumViewset(viewsets.ModelViewSet):
+    queryset = models.Curriculum.objects.all()
+    serializer_class = serializers.CurriculumSerializer
+    permission_classes = [IsAuthenticated]
+
+    @action(detail=True, methods=['GET'])
+    def view_module(self, request: Request, pk=None):
+        modules = self.get_object().modules.all()
+        return Response(serializers.ModuleSerializer(modules, many=True).data)
+
+
+@api_view(['GET'])
+def get_employees_under_trainer(request: Request):
+    access_token = AccessToken(request.headers['token'])
+
+    classroom = models.Classroom.objects.filter(
+        trainer_id=access_token.payload['user_id']).first()
+    return Response({"ok": True, "members": UserSerializer(classroom.members, many=True, include=['username', 'user_id']).data})
