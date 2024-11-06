@@ -44,6 +44,9 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt',
     'authentication',
     'classroom',
+    'manager',
+    'trainer',
+    'employee'
 ]
 
 MIDDLEWARE = [
@@ -157,6 +160,7 @@ CORS_ALLOW_HEADERS = [
 ]
 CORS_ALLOWED_ORIGINS = [
     'http://localhost:5173',
+    'http://localhost:5175'
 ]
 
 SESSION_COOKIE_HTTPONLY = True

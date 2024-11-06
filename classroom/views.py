@@ -1,3 +1,4 @@
+import datetime
 from xml.etree.ElementInclude import include
 from django.shortcuts import render
 from django.forms.models import model_to_dict
@@ -159,3 +160,37 @@ def get_employees_under_trainer(request: Request):
     classroom = models.Classroom.objects.filter(
         trainer_id=access_token.payload['user_id']).first()
     return Response({"ok": True, "members": UserSerializer(classroom.members, many=True, include=['username', 'user_id']).data})
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def update_attendance(request: Request):
+    access_token = AccessToken(request.headers['token'])
+    if access_token.payload['role'] != 'trainer':
+        return Response({"ok": False, "error": "You are not allowed to perform this operation"}, status=401)
+    classroom = models.Classroom.objects.filter(
+        trainer_id=access_token.payload['user_id']).get()
+    today_date = datetime.date.today()
+
+    class_attendance = None
+    if not models.ClassRoomAttendance.objects.filter(date=today_date).exists():
+        class_attendance = models.ClassRoomAttendance.objects.create(
+            classroom_id=classroom,
+        )
+    else:
+        class_attendance = models.ClassRoomAttendance.objects.filter(
+            date=today_date).get()
+        
+        existing_attendance = class_attendance.employee_status.all()
+        for attendance in existing_attendance:
+            attendance.delete()
+
+        class_attendance.employee_status.clear()
+
+    for user in request.data['users']:
+        class_attendance.employee_status.add(models.UserAttendance.objects.create(
+            user = User.objects.filter(user_id=user['user_id']).get(),
+            present_status=user['present'],
+        ))
+
+    return Response({"ok": True, "results": serializers.ClassRooomAttendanceSerializer(class_attendance).data})
