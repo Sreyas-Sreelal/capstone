@@ -167,3 +167,6 @@ AUTH_USER_MODEL = "authentication.User"
 PASSWORD_HASHERS = [
     'django.contrib.auth.hashers.BCryptPasswordHasher',
 ]
+
+USE_L10N = False
+DATE_INPUT_FORMATS = ['%d/%m/%Y']  
