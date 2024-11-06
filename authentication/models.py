@@ -20,6 +20,8 @@ class User(AbstractUser):
     password = models.CharField(max_length=72)
 
     certifications = models.ManyToManyField(Certifications,blank=True)
+    manager_id = models.ForeignKey('authentication.User',on_delete=models.SET_NULL,null=True)
+
     REQUIRED_FIELDS = ['email_id', 'password', 'role']
     USERNAME_FIELD = 'username'
     EMAIL_FIELD = 'email_id'

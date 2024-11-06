@@ -4,6 +4,8 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
+from rest_framework import viewsets
+from classroom.serializers import ClassroomSerializer, CurriculumSerializer
 from . import models
 from rest_framework_simplejwt.tokens import AccessToken
 from authentication.models import User
@@ -12,19 +14,60 @@ from course.models import Course
 # Create your views here.
 
 
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_available_trainers(request: Request):
+    trainers = User.objects.filter(role='trainer').all()
+    response = Response()
+    response.data = {"ok": True, "results": []}
+    for trainer in trainers:
+        response.data["results"].append(
+            {"value": trainer.user_id, "label": trainer.username})
+    return response
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_available_employees(request: Request):
+    access_token = AccessToken(request.headers['token'])
+    if access_token.payload['role'] != 'manager':
+        return Response({"ok": False, "error": "You are not allowed to perform this operation"}, status=401)
+
+    response = Response()
+    response.data = {"ok": True, "results": []}
+
+    members = User.objects.filter(manager_id=User(
+        pk=access_token.payload['user_id'])).all()
+
+    for member in members:
+        response.data["results"].append(
+            {"value": member.user_id, "label": member.username})
+
+    return response
+
+
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def create_classroom(request: Request):
     """
     Request Format:
     {
+        "title":"",
         "trainer_id":"",
         "members":[
             "",
         ],
-        "courses":[
-            "",
-        ]
+        "curriculum":{
+            "name":"",
+            "modules":[
+                {
+                    "expected_meetings":0,
+                    "module_name":"",
+                    "detailed_description":"",
+                }
+            ]
+        },
+        "eod":""
     }
     """
 
@@ -32,28 +75,35 @@ def create_classroom(request: Request):
     if access_token.payload['role'] != 'manager':
         return Response({"ok": False, "error": "You are not allowed to perform this operation"}, status=401)
 
-    try:
-        user: User = User.objects.get(user_id=request.data['trainer_id'])
-        if user.role != 'trainer':
-            return Response({"ok": False, "error": "Specified user is not a trainer!"}, status=500)
+  
+    user: User = User.objects.get(user_id=request.data['trainer_id'])
+    if user.role != 'trainer':
+        return Response({"ok": False, "error": "Specified user is not a trainer!"}, status=500)
 
-        new_class = models.Classroom(
-            title=request.data['title'],
-            trainer_id=User(pk=request.data['trainer_id']),
-            manager_id=User(pk=access_token.payload['user_id'])
+  
+    new_curriculum = models.Curriculum.objects.create()
+
+    for module in request.data['modules']:
+        new_module = models.Modules.objects.create(
+            expected_meetings=module['expected_meetings'],
+            module_name=module['module_name'],
+            detailed_description=module['detailed_description']
         )
-        new_class.save()
+        new_curriculum.modules.add(new_module)
 
+    new_class = models.Classroom.objects.create(
+        curriculum_id=new_curriculum.curriculum_id,
+        title=request.data['title'],
+        trainer_id=User(pk=request.data['trainer_id']),
+        manager_id=User(pk=access_token.payload['user_id']),
+        eod=request.data['eod']
+    )
+    new_class.save()
 
-        for member in request.data['members']:
-            new_class.members.add(User.objects.get(pk=member))
-
-        for course in request.data['members']:
-            new_class.courses.add(Course.objects.get(pk=course))
-
-    except Exception as e:
-        print("Error", e)
-        return Response({"ok": False, "error": str(e)}, status=500)
+    for member in request.data['members']:
+        new_class.members.add(User.objects.get(pk=member))
+    return Response({"ok": True})
+    
 
 
 @api_view(['POST'])
@@ -77,7 +127,7 @@ def delete_classroom(request: Request):
         return Response({"ok": False, "error": str(e)}, status=500)
 
 
-@api_view(['POST'])
+@api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def view_classrooms(request: Request):
     access_token = AccessToken(request.headers['token'])
@@ -85,6 +135,7 @@ def view_classrooms(request: Request):
         return Response({"ok": False, "error": "You are not allowed to perform this operation"}, status=401)
 
     classrooms = models.Classroom.objects.filter(
-        manager_id=access_token.payload['user_id']).all()
+        manager_id=access_token.payload['user_id']
+    ).all()
 
-    return Response({"ok": True, "classrooms": list(map(model_to_dict, classrooms))})
+    return Response({"ok": True, "classrooms": ClassroomSerializer(classrooms,many=True).data})
