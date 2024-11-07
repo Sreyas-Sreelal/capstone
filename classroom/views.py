@@ -246,5 +246,7 @@ def get_absentees_list(request:Request):
         for user in employee_status:
             if not user.present_status:
                 users.append(User.objects.filter(user_id=user.user_id).get())
-        
-        return Response({"ok":True,"absentees":UserSerializer(users,many=True,include=['user_id','username']).data})
+        if len(users) > 0:
+            return Response({"ok":True,"absentees":UserSerializer(users,many=True,include=['user_id','username']).data})
+        else:
+            return Response({"ok":False,"error":"No Absenteess today!"})
