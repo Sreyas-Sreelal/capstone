@@ -153,7 +153,7 @@ class CurriculumViewset(viewsets.ModelViewSet):
         return Response(serializers.ModuleSerializer(modules, many=True).data)
 
 
-@api_view(['GET'])
+@api_view(['POST'])
 def get_employees_under_trainer(request: Request):
     access_token = AccessToken(request.headers['token'])
 
@@ -173,7 +173,7 @@ def get_employees_under_trainer(request: Request):
         trainer_id=access_token.payload['user_id']
     ).get()
 
-    today_date = datetime.date.today()
+    today_date = request.data.get('date',datetime.date.today())
     (class_attendance,created) = models.ClassRoomAttendance.objects.get_or_create(date=today_date,classroom_id=classroom,)
     print("created is",created)
     if created:
@@ -199,8 +199,9 @@ def update_attendance(request: Request):
         return Response({"ok": False, "error": "You are not allowed to perform this operation"}, status=401)
     classroom = models.Classroom.objects.filter(
         trainer_id=access_token.payload['user_id']).get()
-    today_date = datetime.date.today()
-
+    
+    today_date = request.data.get('date',datetime.date.today())
+   
     class_attendance = None
     if not models.ClassRoomAttendance.objects.filter(date=today_date,classroom_id=classroom).exists():
         class_attendance = models.ClassRoomAttendance.objects.create(
