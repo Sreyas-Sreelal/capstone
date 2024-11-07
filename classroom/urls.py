@@ -10,7 +10,8 @@ urlpatterns = [
     path('get_available_trainers',views.get_available_trainers),
     path('get_available_employees',views.get_available_employees),
     path('get_employees_under_trainer',views.get_employees_under_trainer),
-    path('update_attendance',views.update_attendance)
+    path('update_attendance',views.update_attendance),
+    path('get_absentees_list',views.get_absentees_list)
 ]
 
 router = DefaultRouter()

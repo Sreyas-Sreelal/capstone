@@ -202,7 +202,7 @@ def update_attendance(request: Request):
     today_date = datetime.date.today()
 
     class_attendance = None
-    if not models.ClassRoomAttendance.objects.filter(date=today_date).exists():
+    if not models.ClassRoomAttendance.objects.filter(date=today_date,classroom_id=classroom).exists():
         class_attendance = models.ClassRoomAttendance.objects.create(
             classroom_id=classroom,
         )
@@ -223,3 +223,27 @@ def update_attendance(request: Request):
         ))
 
     return Response({"ok": True, "results": serializers.ClassRooomAttendanceSerializer(class_attendance).data})
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_absentees_list(request:Request):
+    access_token = AccessToken(request.headers['token'])
+    if access_token.payload['role'] != 'trainer':
+        return Response({"ok": False, "error": "You are not allowed to perform this operation"}, status=401)
+    
+    today_date = datetime.date.today()
+
+    classroom = models.Classroom.objects.filter(
+        trainer_id=access_token.payload['user_id']).get()
+
+    if not models.ClassRoomAttendance.objects.filter(date=today_date,classroom_id=classroom).exists():
+        return Response({"ok": False, "error": "Attendance hasn't been marked for today!"})
+    else:
+        class_attendance = models.ClassRoomAttendance.objects.filter(date=today_date).get()
+        employee_status = class_attendance.employee_status.all()
+        users = []
+        for user in employee_status:
+            if not user.present_status:
+                users.append(User.objects.filter(user_id=user.user_id).get())
+        
+        return Response({"ok":True,"absentees":UserSerializer(users,many=True,include=['user_id','username']).data})
