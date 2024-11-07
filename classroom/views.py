@@ -8,7 +8,7 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import viewsets
 from authentication.serializers import UserSerializer
-from classroom.serializers import ClassroomSerializer, CurriculumSerializer
+from classroom.serializers import ClassroomSerializer, CurriculumSerializer, MeetingSerializer
 from . import models
 from . import serializers
 from rest_framework_simplejwt.tokens import AccessToken
@@ -145,7 +145,7 @@ def view_classrooms(request: Request):
 class CurriculumViewset(viewsets.ModelViewSet):
     queryset = models.Curriculum.objects.all()
     serializer_class = serializers.CurriculumSerializer
-    permission_classes = [IsAuthenticated]  
+    permission_classes = [IsAuthenticated]
 
     @action(detail=True, methods=['GET'])
     def view_module(self, request: Request, pk=None):
@@ -159,7 +159,7 @@ def get_employees_under_trainer(request: Request):
 
     classroom = models.Classroom.objects.filter(
         trainer_id=access_token.payload['user_id']).first()
-    
+
     response = Response(data={})
     response.data["ok"] = True
 
@@ -173,9 +173,10 @@ def get_employees_under_trainer(request: Request):
         trainer_id=access_token.payload['user_id']
     ).get()
 
-    today_date = request.data.get('date',datetime.date.today())
-    (class_attendance,created) = models.ClassRoomAttendance.objects.get_or_create(date=today_date,classroom_id=classroom,)
-    print("created is",created)
+    today_date = request.data.get('date', datetime.date.today())
+    (class_attendance, created) = models.ClassRoomAttendance.objects.get_or_create(
+        date=today_date, classroom_id=classroom,)
+    print("created is", created)
     if created:
         for member in classroom.members.all():
             class_attendance.employee_status.add(models.UserAttendance.objects.create(
@@ -186,7 +187,8 @@ def get_employees_under_trainer(request: Request):
     employees = class_attendance.employee_status.all()
 
     for member in response.data["members"]:
-        present_status = class_attendance.employee_status.filter(user_id=member['user_id']).get().present_status
+        present_status = class_attendance.employee_status.filter(
+            user_id=member['user_id']).get().present_status
         member['present'] = present_status
     return response
 
@@ -199,11 +201,11 @@ def update_attendance(request: Request):
         return Response({"ok": False, "error": "You are not allowed to perform this operation"}, status=401)
     classroom = models.Classroom.objects.filter(
         trainer_id=access_token.payload['user_id']).get()
-    
-    today_date = request.data.get('date',datetime.date.today())
-   
+
+    today_date = request.data.get('date', datetime.date.today())
+
     class_attendance = None
-    if not models.ClassRoomAttendance.objects.filter(date=today_date,classroom_id=classroom).exists():
+    if not models.ClassRoomAttendance.objects.filter(date=today_date, classroom_id=classroom).exists():
         class_attendance = models.ClassRoomAttendance.objects.create(
             classroom_id=classroom,
         )
@@ -225,28 +227,106 @@ def update_attendance(request: Request):
 
     return Response({"ok": True, "results": serializers.ClassRooomAttendanceSerializer(class_attendance).data})
 
+
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
-def get_absentees_list(request:Request):
+def get_absentees_list(request: Request):
     access_token = AccessToken(request.headers['token'])
     if access_token.payload['role'] != 'trainer':
         return Response({"ok": False, "error": "You are not allowed to perform this operation"}, status=401)
-    
+
     today_date = datetime.date.today()
 
     classroom = models.Classroom.objects.filter(
         trainer_id=access_token.payload['user_id']).get()
 
-    if not models.ClassRoomAttendance.objects.filter(date=today_date,classroom_id=classroom).exists():
+    if not models.ClassRoomAttendance.objects.filter(date=today_date, classroom_id=classroom).exists():
         return Response({"ok": False, "error": "Attendance hasn't been marked for today!"})
     else:
-        class_attendance = models.ClassRoomAttendance.objects.filter(date=today_date).get()
+        class_attendance = models.ClassRoomAttendance.objects.filter(
+            date=today_date).get()
         employee_status = class_attendance.employee_status.all()
         users = []
         for user in employee_status:
             if not user.present_status:
                 users.append(User.objects.filter(user_id=user.user_id).get())
         if len(users) > 0:
-            return Response({"ok":True,"absentees":UserSerializer(users,many=True,include=['user_id','username']).data})
+            return Response({"ok": True, "absentees": UserSerializer(users, many=True, include=['user_id', 'username']).data})
         else:
-            return Response({"ok":False,"error":"No Absenteess today!"})
+            return Response({"ok": False, "error": "No Absenteess today!"})
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def schedule_meeting(request: Request):
+    access_token = AccessToken(request.headers['token'])
+    if access_token.payload['role'] != 'trainer':
+        return Response({"ok": False, "error": "You are not allowed to perform this operation"}, status=401)
+    classroom = models.Classroom.objects.filter(
+        trainer_id=access_token.payload['user_id']).get()
+    try:
+        meeting = models.Meetings.objects.create(
+            meeting_name=request.data['meeting_name'],
+            meeting_date=request.data['meeting_date'],
+            meeting_link=request.data['meeting_link'],
+            start_time=request.data['start_time'],
+            end_time=request.data['end_time'],
+            trainer_id=User(pk=access_token.payload['user_id']),
+            classroom_id=classroom
+        )
+        return Response({"ok": True, "meeting": MeetingSerializer(meeting).data})
+    except:
+        return Response({"ok": False, "error": "A meeting for this date is already scheduled"})
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def remove_meeting(request: Request):
+    access_token = AccessToken(request.headers['token'])
+    if access_token.payload['role'] != 'trainer':
+        return Response({"ok": False, "error": "You are not allowed to perform this operation"}, status=401)
+
+    models.Meetings.objects.filter(
+        pk=request.data['meeting_id']).delete()
+    return Response({"ok": True})
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def attend_meeting(request: Request):
+    access_token = AccessToken(request.headers['token'])
+    if access_token.payload['role'] != 'employee':
+        return Response({"ok": False, "error": "You are not allowed to perform this operation"}, status=401)
+
+    meeting = models.Meetings.objects.filter(
+        meeting_id=request.data['meeting_id']).get()
+    if meeting.participants.filter(pk=access_token.payload['user_id']).exists():
+        return Response({"ok": False, "error": "You already attended this meeting"})
+    meeting.participants.add(User.objects.filter(
+        pk=access_token.payload['user_id']).get())
+
+    return Response({"ok": True, "meeting": MeetingSerializer(meeting).data})
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_meetings(request: Request):
+    access_token = AccessToken(request.headers['token'])
+    if access_token.payload['role'] == 'trainer':
+        classroom = models.Classroom.objects.filter(
+            trainer_id=access_token.payload['user_id']).get()
+    elif access_token.payload['role'] == 'employee':
+        classroom = models.Classroom.get(
+            pk=(User.objects.get(pk=access_token.payload['user_id']).class_id))
+
+    if request.data.get('meeting_date') == None:
+        meetings = models.Meetings.objects.filter(classroom_id=classroom).all()
+
+        return Response({"ok": True, "meetings": MeetingSerializer(meetings, many=True).data})
+    else:
+        meetings = models.Meetings.objects.filter(
+            meeting_date=request.data['meeting_date'],
+            classroom_id=classroom
+        ).all()
+
+        return Response({"ok": True, "meetings": MeetingSerializer(meetings, many=True).data})
