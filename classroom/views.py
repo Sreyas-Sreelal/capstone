@@ -145,7 +145,7 @@ def view_classrooms(request: Request):
 class CurriculumViewset(viewsets.ModelViewSet):
     queryset = models.Curriculum.objects.all()
     serializer_class = serializers.CurriculumSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated]  
 
     @action(detail=True, methods=['GET'])
     def view_module(self, request: Request, pk=None):
@@ -159,7 +159,36 @@ def get_employees_under_trainer(request: Request):
 
     classroom = models.Classroom.objects.filter(
         trainer_id=access_token.payload['user_id']).first()
-    return Response({"ok": True, "members": UserSerializer(classroom.members, many=True, include=['username', 'user_id']).data})
+    
+    response = Response(data={})
+    response.data["ok"] = True
+
+    response.data["members"] = UserSerializer(
+        classroom.members,
+        many=True,
+        include=['username', 'user_id']
+    ).data
+
+    classroom = models.Classroom.objects.filter(
+        trainer_id=access_token.payload['user_id']
+    ).get()
+
+    today_date = datetime.date.today()
+    (class_attendance,created) = models.ClassRoomAttendance.objects.get_or_create(date=today_date,classroom_id=classroom,)
+    print("created is",created)
+    if created:
+        for member in classroom.members.all():
+            class_attendance.employee_status.add(models.UserAttendance.objects.create(
+                user=member,
+                present_status=False,
+            ))
+
+    employees = class_attendance.employee_status.all()
+
+    for member in response.data["members"]:
+        present_status = class_attendance.employee_status.filter(user_id=member['user_id']).get().present_status
+        member['present'] = present_status
+    return response
 
 
 @api_view(['POST'])
@@ -180,7 +209,7 @@ def update_attendance(request: Request):
     else:
         class_attendance = models.ClassRoomAttendance.objects.filter(
             date=today_date).get()
-        
+
         existing_attendance = class_attendance.employee_status.all()
         for attendance in existing_attendance:
             attendance.delete()
@@ -189,7 +218,7 @@ def update_attendance(request: Request):
 
     for user in request.data['users']:
         class_attendance.employee_status.add(models.UserAttendance.objects.create(
-            user = User.objects.filter(user_id=user['user_id']).get(),
+            user=User.objects.filter(user_id=user['user_id']).get(),
             present_status=user['present'],
         ))
 
