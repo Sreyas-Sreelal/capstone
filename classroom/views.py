@@ -275,8 +275,8 @@ def schedule_meeting(request: Request):
             classroom_id=classroom
         )
         return Response({"ok": True, "meeting": MeetingSerializer(meeting).data})
-    except:
-        return Response({"ok": False, "error": "A meeting for this date is already scheduled"})
+    except Exception as e:
+        return Response({"ok": False, "error": "A meeting for this date is already scheduled" + str(e)})
 
 
 @api_view(['POST'])
@@ -316,8 +316,8 @@ def get_meetings(request: Request):
         classroom = models.Classroom.objects.filter(
             trainer_id=access_token.payload['user_id']).get()
     elif access_token.payload['role'] == 'employee':
-        classroom = models.Classroom.get(
-            pk=(User.objects.get(pk=access_token.payload['user_id']).class_id))
+        classroom = models.Classroom.objects.get(
+            pk=(User.objects.get(pk=access_token.payload['user_id']).class_id.class_id))
 
     if request.data.get('meeting_date') == None:
         meetings = models.Meetings.objects.filter(classroom_id=classroom).all()
