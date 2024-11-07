@@ -31,3 +31,9 @@ class ClassRooomAttendanceSerializer(serializers.ModelSerializer):
     class Meta:
         fields = '__all__'
         model = models.ClassRoomAttendance
+
+class MeetingSerializer(serializers.ModelSerializer):
+    participants = UserSerializer(many=True,read_only=True,include=['username','user_id'])
+    class Meta:
+        fields = '__all__'
+        model = models.Meetings

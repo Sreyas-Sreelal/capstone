@@ -11,7 +11,11 @@ urlpatterns = [
     path('get_available_employees',views.get_available_employees),
     path('get_employees_under_trainer',views.get_employees_under_trainer),
     path('update_attendance',views.update_attendance),
-    path('get_absentees_list',views.get_absentees_list)
+    path('get_absentees_list',views.get_absentees_list),
+    path('schedule_meeting',views.schedule_meeting),
+    path('remove_meeting',views.remove_meeting),
+    path('attend_meeting',views.attend_meeting),
+    path('get_meetings',views.get_meetings)
 ]
 
 router = DefaultRouter()
