@@ -14,6 +14,7 @@ from . import serializers
 from rest_framework_simplejwt.tokens import AccessToken
 from authentication.models import User
 from course.models import Course
+from django.db import IntegrityError
 
 # Create your views here.
 
@@ -276,10 +277,24 @@ def schedule_meeting(request: Request):
             classroom_id=classroom
         )
         return Response({"ok": True, "meeting": MeetingSerializer(meeting).data})
-    except Exception as e:
-        return Response({"ok": False, "error": "A meeting for this date is already scheduled" + str(e)})
+    except IntegrityError as e:
+        meeting = models.Meetings.objects.get(
+            meeting_date=request.data['meeting_date'],
+            trainer_id=User(pk=access_token.payload['user_id']),
+            classroom_id=classroom
+        )
+        meeting.delete()
 
-
+        meeting = models.Meetings.objects.create(
+            meeting_name=request.data['meeting_name'],
+            meeting_date=request.data['meeting_date'],
+            meeting_link=request.data['meeting_link'],
+            start_time=request.data['start_time'],
+            end_time=request.data['end_time'],
+            trainer_id=User(pk=access_token.payload['user_id']),
+            classroom_id=classroom
+        )
+        return Response({"ok": True, "meeting": MeetingSerializer(meeting).data})   
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def remove_meeting(request: Request):

@@ -74,10 +74,12 @@ class ClassRoomAttendance(models.Model):
 class Meetings(models.Model):
     meeting_name = models.TextField()
     meeting_id = models.UUIDField(primary_key=True, default=uuid.uuid4)
-    meeting_date = models.DateField(default=datetime.date.today,unique=True)
+    meeting_date = models.DateField(default=datetime.date.today)
     meeting_link = models.URLField()
     start_time = models.TimeField()
     end_time = models.TimeField()
     participants = models.ManyToManyField('authentication.User',related_name="meeting_participant")
     trainer_id = models.ForeignKey('authentication.User',on_delete=models.SET_NULL,null=True)
     classroom_id = models.ForeignKey(Classroom,on_delete=models.SET_NULL,null=True)
+    class Meta:
+        unique_together = ('classroom_id', 'meeting_date','trainer_id')
