@@ -98,6 +98,7 @@ def create_classroom(request: Request):
         title=request.data['title'],
         trainer_id=User(pk=request.data['trainer_id']),
         manager_id=User(pk=access_token.payload['user_id']),
+        start_date=request.data['start_date'],
         eod=request.data['eod']
     )
     new_class.save()
