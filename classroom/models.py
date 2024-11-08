@@ -48,6 +48,7 @@ class Classroom(models.Model):
         related_name="class_members"
     )
     curriculum = models.ForeignKey(Curriculum, on_delete=models.CASCADE)
+    start_date = models.DateField()
     eod = models.DateField()
 
 
