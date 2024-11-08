@@ -15,10 +15,11 @@ urlpatterns = [
     path('schedule_meeting',views.schedule_meeting),
     path('remove_meeting',views.remove_meeting),
     path('attend_meeting',views.attend_meeting),
-    path('get_meetings',views.get_meetings)
+    path('get_meetings',views.get_meetings),
+    path('get_manager_dashboard_details',views.get_manager_dashboard_details)
 ]
 
 router = DefaultRouter()
 router.register('view_curriculum',views.CurriculumViewset)
-
+router.register('view_classes',views.ClasroomViewset)
 urlpatterns += router.urls

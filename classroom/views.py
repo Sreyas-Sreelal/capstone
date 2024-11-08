@@ -155,6 +155,16 @@ class CurriculumViewset(viewsets.ModelViewSet):
         return Response(serializers.ModuleSerializer(modules, many=True).data)
 
 
+class ClasroomViewset(viewsets.ModelViewSet):
+    queryset = models.Classroom.objects.all()
+    serializer_class = serializers.ClassroomSerializer
+    permission_classes = [IsAuthenticated]
+
+    @action(detail=True, methods=['GET'])
+    def view_curriculum(self, request: Request, pk=None):
+        return Response(serializers.CurriculumSerializer(self.get_object().curriculum).data)
+
+
 @api_view(['POST'])
 def get_employees_under_trainer(request: Request):
     access_token = AccessToken(request.headers['token'])
@@ -294,7 +304,9 @@ def schedule_meeting(request: Request):
             trainer_id=User(pk=access_token.payload['user_id']),
             classroom_id=classroom
         )
-        return Response({"ok": True, "meeting": MeetingSerializer(meeting).data})   
+        return Response({"ok": True, "meeting": MeetingSerializer(meeting).data})
+
+
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def remove_meeting(request: Request):
@@ -346,3 +358,36 @@ def get_meetings(request: Request):
         ).all()
 
         return Response({"ok": True, "meetings": MeetingSerializer(meetings, many=True).data})
+
+
+@api_view(['GET'])
+def get_manager_dashboard_details(request: Request):
+    access_token = AccessToken(request.headers['token'])
+    if access_token.payload['role'] != 'manager':
+        return Response({"ok": False, "error": "You are not allowed to perform this operation"}, status=401)
+
+    response = Response()
+    response.data = {}
+    response.data['ok'] = True
+    classrooms_query = models.Classroom.objects.filter(
+        manager_id=access_token.payload['user_id']
+    )
+    response.data['classroom_count'] = classrooms_query.count()
+
+    available_classrooms = classrooms_query.all()
+    response.data['classes'] = ClassroomSerializer(
+        available_classrooms, many=True).data
+
+    for classroom in response.data['classes']:
+        start_date = datetime.datetime.strptime(
+            classroom['start_date'], '%Y-%m-%d')
+        end_date = datetime.datetime.strptime(classroom['eod'], '%Y-%m-%d')
+        classroom['progress'] = ((datetime.datetime.today(
+        ) - start_date).days / (end_date - start_date).days) * 100
+    response.data['employee_count'] = User.objects.filter(
+        manager_id=access_token.payload['user_id'], role='employee').count()
+
+    response.data['trainer_count'] = User.objects.filter(
+        manager_id=access_token.payload['user_id'], role='trainer').count()
+
+    return response
