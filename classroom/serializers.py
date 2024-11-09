@@ -21,16 +21,16 @@ class ClassroomSerializer(serializers.ModelSerializer):
         fields = "__all__"
         model = models.Classroom        
 
-class UserAttendanceSerializer(serializers.ModelSerializer):
-    class Meta:
-        fields = '__all__'
-        model = models.UserAttendance
+# class UserAttendanceSerializer(serializers.ModelSerializer):
+#     class Meta:
+#         fields = '__all__'
+#         model = models.UserAttendance
 
-class ClassRooomAttendanceSerializer(serializers.ModelSerializer):
-    employee_statues = UserAttendanceSerializer(many=True,read_only=True)
-    class Meta:
-        fields = '__all__'
-        model = models.ClassRoomAttendance
+# class ClassRooomAttendanceSerializer(serializers.ModelSerializer):
+#     employee_statues = UserAttendanceSerializer(many=True,read_only=True)
+#     class Meta:
+#         fields = '__all__'
+#         model = models.ClassRoomAttendance
 
 class MeetingSerializer(serializers.ModelSerializer):
     participants = UserSerializer(many=True,read_only=True,include=['username','user_id'])
