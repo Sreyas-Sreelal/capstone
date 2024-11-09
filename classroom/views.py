@@ -42,7 +42,7 @@ def get_available_employees(request: Request):
     response.data = {"ok": True, "results": []}
 
     members = User.objects.filter(manager_id=User(
-        pk=access_token.payload['user_id']),role='employee' ).all()
+        pk=access_token.payload['user_id']),role='employee').exclude(classroom__isnull=True).all()
 
     for member in members:
         response.data["results"].append(
@@ -398,7 +398,7 @@ def get_manager_dashboard_details(request: Request):
         response.data['classes'].append(ClassroomSerializer(classes).data)
         response.data['classes'][-1]['meeting_count'] = models.Meetings.objects.filter(classroom_id=classes).count()
         response.data['classes'][-1]['progress'] = (response.data['classes'][-1]['meeting_count'] / total_expected_meetings ) * 100
-
+        response.data['classes'][-1]['employee_count'] = classes.members.count()
 
     for classroom in response.data['classes']:
         start_date = datetime.datetime.strptime(
@@ -407,7 +407,7 @@ def get_manager_dashboard_details(request: Request):
         classroom['completion_timeline'] = ((datetime.datetime.today(
         ) - start_date).days / (end_date - start_date).days) * 100
 
-    response.data['employee_count'] = User.objects.filter(
+    response.data['employees_under_manager_count'] = User.objects.filter(
         manager_id=access_token.payload['user_id'], role='employee').count()
 
     response.data['trainer_count'] = User.objects.filter(
