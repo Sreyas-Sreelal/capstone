@@ -9,7 +9,7 @@ urlpatterns = [
     path('view_classrooms',views.view_classrooms),
     path('get_available_trainers',views.get_available_trainers),
     path('get_available_employees',views.get_available_employees),
-    path('get_employees_under_trainer',views.get_employees_under_trainer),
+    path('get_employees_attendance_list',views.get_employees_attendance_list),
     path('update_attendance',views.update_attendance),
     path('get_absentees_list',views.get_absentees_list),
     path('schedule_meeting',views.schedule_meeting),

@@ -52,21 +52,21 @@ class Classroom(models.Model):
     eod = models.DateField()
 
 
-class UserAttendance(models.Model):
-    user = models.ForeignKey(
-        'authentication.User',
-        related_name='attendee_user',
-        on_delete=models.CASCADE
-    )
-    present_status = models.BooleanField(default=False)
+# class UserAttendance(models.Model):
+#     user = models.ForeignKey(
+#         'authentication.User',
+#         related_name='attendee_user',
+#         on_delete=models.CASCADE
+#     )
+#     present_status = models.BooleanField(default=False)
 
 
-class ClassRoomAttendance(models.Model):
-    attendance_id = models.UUIDField(primary_key=True, default=uuid.uuid4)
-    classroom_id = models.ForeignKey(Classroom, on_delete=models.CASCADE)
-    employee_status = models.ManyToManyField(
-        UserAttendance, related_name="employee_attendance")
-    date = models.DateField(unique=True, default=datetime.date.today)
+# class ClassRoomAttendance(models.Model):
+#     attendance_id = models.UUIDField(primary_key=True, default=uuid.uuid4)
+#     classroom_id = models.ForeignKey(Classroom, on_delete=models.CASCADE)
+#     employee_status = models.ManyToManyField(
+#         UserAttendance, related_name="employee_attendance")
+#     date = models.DateField(unique=True, default=datetime.date.today)
 
 # if today's attendance is available, fetch it from the database and allow trainer to update
 # if not create, new one and update with whatever trainer gave
@@ -81,5 +81,6 @@ class Meetings(models.Model):
     participants = models.ManyToManyField('authentication.User',related_name="meeting_participant")
     trainer_id = models.ForeignKey('authentication.User',on_delete=models.SET_NULL,null=True)
     classroom_id = models.ForeignKey(Classroom,on_delete=models.SET_NULL,null=True)
+    conducted = models.BooleanField(default=False)
     class Meta:
         unique_together = ('classroom_id', 'meeting_date','trainer_id')
