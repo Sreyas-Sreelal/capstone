@@ -9,6 +9,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework import viewsets
 from authentication.serializers import UserSerializer
 from classroom.serializers import ClassroomSerializer, CurriculumSerializer, MeetingSerializer
+from course.serializers import ModuleSerializer
 from . import models
 from . import serializers
 from rest_framework_simplejwt.tokens import AccessToken
@@ -42,7 +43,7 @@ def get_available_employees(request: Request):
     response.data = {"ok": True, "results": []}
 
     members = User.objects.filter(manager_id=User(
-        pk=access_token.payload['user_id']),role='employee').filter(Q(class_id_id=None)).all()
+        pk=access_token.payload['user_id']), role='employee').filter(Q(class_id_id=None)).all()
 
     for member in members:
         response.data["results"].append(
@@ -105,7 +106,9 @@ def create_classroom(request: Request):
     new_class.save()
 
     for member in request.data['members']:
-        new_class.members.add(User.objects.get(pk=member))
+        user = User.objects.get(pk=member)
+        user.class_id = new_class.class_id
+        new_class.members.add(user)
     return Response({"ok": True})
 
 
@@ -186,9 +189,9 @@ def get_employees_attendance_list(request: Request):
     ).get()
 
     today_date = request.data.get('date', datetime.date.today())
-    
+
     if not models.Meetings.objects.filter(meeting_date=today_date).exists():
-        return Response({"ok":False,"error":"No meetings held today!"})
+        return Response({"ok": False, "error": "No meetings held today!"})
 
     meeting = models.Meetings.objects.filter(meeting_date=today_date).get()
     participants = meeting.participants.all()
@@ -196,7 +199,7 @@ def get_employees_attendance_list(request: Request):
         user = User.objects.filter(pk=member['user_id']).get()
         # print(user,employees)
         member['present'] = user in participants
-    
+
     return response
 
 
@@ -216,12 +219,13 @@ def update_attendance(request: Request):
 
     meeting = models.Meetings.objects.filter(meeting_date=today_date).get()
     participants = meeting.participants.all()
-    
+
     for user in request.data['users']:
         user_obj = User.objects.get(pk=user['user_id'])
         if user['present']:
             if user_obj not in participants:
-                meeting.participants.add(User.objects.filter(user_id=user['user_id']).get())
+                meeting.participants.add(
+                    User.objects.filter(user_id=user['user_id']).get())
         else:
             if user_obj in participants:
                 meeting.participants.remove(user_obj)
@@ -248,7 +252,7 @@ def get_absentees_list(request: Request):
     meeting = models.Meetings.objects.filter(meeting_date=today_date).get()
 
     participants = meeting.participants.all()
-    
+
     for user in classroom.members.all():
         if not user in participants:
             users.append(user)
@@ -374,6 +378,7 @@ def get_meetings(request: Request):
 
 
 @api_view(['GET'])
+@permission_classes([IsAuthenticated])
 def get_manager_dashboard_details(request: Request):
     access_token = AccessToken(request.headers['token'])
     if access_token.payload['role'] != 'manager':
@@ -396,10 +401,17 @@ def get_manager_dashboard_details(request: Request):
         for module in modules:
             total_expected_meetings += module.expected_meetings
         response.data['classes'].append(ClassroomSerializer(classes).data)
-        response.data['classes'][-1]['meeting_count'] = models.Meetings.objects.filter(classroom_id=classes,conducted=True).count()
-        response.data['classes'][-1]['progress'] = (response.data['classes'][-1]['meeting_count'] / total_expected_meetings ) * 100
+        response.data['classes'][-1]['meeting_count'] = models.Meetings.objects.filter(
+            classroom_id=classes, conducted=True).count()
+        response.data['classes'][-1]['progress'] = (
+            response.data['classes'][-1]['meeting_count'] / total_expected_meetings) * 100
         response.data['classes'][-1]['employee_count'] = classes.members.count()
         response.data['classes'][-1]['trainer_name'] = classes.trainer_id.username
+        modules = []
+        for module in classes.curriculum.modules.all():
+            modules.append(ModuleSerializer(module).data)
+
+        response.data["classes"][-1]["modules"] = modules
     for classroom in response.data['classes']:
         start_date = datetime.datetime.strptime(
             classroom['start_date'], '%Y-%m-%d')
@@ -413,4 +425,43 @@ def get_manager_dashboard_details(request: Request):
     response.data['trainer_count'] = User.objects.filter(
         manager_id=access_token.payload['user_id'], role='trainer').count()
 
+    return response
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_employees_under_manager(request: Request):
+    access_token = AccessToken(request.headers['token'])
+    if access_token.payload['role'] != 'manager':
+        return Response({"ok": False, "error": "You are not allowed to perform this operation"}, status=401)
+
+    employees = User.objects.filter(
+        manager_id=access_token.payload['user_id'], role='employee').all()
+
+    response = Response(data={})
+    response.data["ok"] = True
+    response.data["employees"] = []
+
+    for employee in employees:
+        response.data["employees"].append(UserSerializer(
+            employee, include=['username', 'user_id']).data)
+        if employee.class_id:
+            response.data["employees"][-1]["classroom"] = employee.class_id.title
+        else:
+            response.data["employees"][-1]["classroom"] = "Not enrolled in any Classes"
+
+        meetings = models.Meetings.objects.filter(
+            classroom_id=employee.class_id).all()
+        total_meetings = models.Meetings.objects.filter(
+            classroom_id=employee.class_id, conducted=True).count()
+        attended_meetings = 0
+        for meeting in meetings:
+            if employee in meeting.participants.all():
+                attended_meetings += 1
+        print(attended_meetings)
+        if total_meetings != 0:
+            response.data["employees"][-1]["attendance_percentage"] = (
+                attended_meetings/total_meetings) * 100
+        else:
+            response.data["employees"][-1]["attendance_percentage"] = 0
     return response

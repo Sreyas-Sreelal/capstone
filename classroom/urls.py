@@ -16,7 +16,8 @@ urlpatterns = [
     path('remove_meeting',views.remove_meeting),
     path('attend_meeting',views.attend_meeting),
     path('get_meetings',views.get_meetings),
-    path('get_manager_dashboard_details',views.get_manager_dashboard_details)
+    path('get_manager_dashboard_details',views.get_manager_dashboard_details),
+    path('get_employees_under_manager',views.get_employees_under_manager)
 ]
 
 router = DefaultRouter()
