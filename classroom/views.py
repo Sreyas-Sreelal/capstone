@@ -451,14 +451,13 @@ def get_employees_under_manager(request: Request):
             response.data["employees"][-1]["classroom"] = "Not enrolled in any Classes"
 
         meetings = models.Meetings.objects.filter(
-            classroom_id=employee.class_id).all()
+            classroom_id=employee.class_id,conducted=True).all()
         total_meetings = models.Meetings.objects.filter(
             classroom_id=employee.class_id, conducted=True).count()
         attended_meetings = 0
         for meeting in meetings:
             if employee in meeting.participants.all():
                 attended_meetings += 1
-        print(attended_meetings)
         if total_meetings != 0:
             response.data["employees"][-1]["attendance_percentage"] = (
                 attended_meetings/total_meetings) * 100
