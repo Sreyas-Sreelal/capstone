@@ -13,8 +13,8 @@ from . import models
 from . import serializers
 from rest_framework_simplejwt.tokens import AccessToken
 from authentication.models import User
-from course.models import Course
 from django.db import IntegrityError
+from django.db.models import Q
 
 # Create your views here.
 
@@ -42,7 +42,7 @@ def get_available_employees(request: Request):
     response.data = {"ok": True, "results": []}
 
     members = User.objects.filter(manager_id=User(
-        pk=access_token.payload['user_id']),role='employee').exclude(classroom__isnull=True).all()
+        pk=access_token.payload['user_id']),role='employee').filter(Q(class_id_id=None)).all()
 
     for member in members:
         response.data["results"].append(
@@ -399,7 +399,7 @@ def get_manager_dashboard_details(request: Request):
         response.data['classes'][-1]['meeting_count'] = models.Meetings.objects.filter(classroom_id=classes,conducted=True).count()
         response.data['classes'][-1]['progress'] = (response.data['classes'][-1]['meeting_count'] / total_expected_meetings ) * 100
         response.data['classes'][-1]['employee_count'] = classes.members.count()
-
+        response.data['classes'][-1]['trainer_name'] = classes.trainer_id.username
     for classroom in response.data['classes']:
         start_date = datetime.datetime.strptime(
             classroom['start_date'], '%Y-%m-%d')
