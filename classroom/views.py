@@ -396,7 +396,7 @@ def get_manager_dashboard_details(request: Request):
         for module in modules:
             total_expected_meetings += module.expected_meetings
         response.data['classes'].append(ClassroomSerializer(classes).data)
-        response.data['classes'][-1]['meeting_count'] = models.Meetings.objects.filter(classroom_id=classes).count()
+        response.data['classes'][-1]['meeting_count'] = models.Meetings.objects.filter(classroom_id=classes,conducted=True).count()
         response.data['classes'][-1]['progress'] = (response.data['classes'][-1]['meeting_count'] / total_expected_meetings ) * 100
         response.data['classes'][-1]['employee_count'] = classes.members.count()
 
