@@ -464,3 +464,30 @@ def get_employees_under_manager(request: Request):
         else:
             response.data["employees"][-1]["attendance_percentage"] = 0
     return response
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_trainer_details_for_manager(request:Request):
+    access_token = AccessToken(request.headers['token'])
+    if access_token.payload['role'] != 'manager':
+        return Response({"ok": False, "error": "You are not allowed to perform this operation"}, status=401)
+
+    trainers = User.objects.filter(
+        manager_id=access_token.payload['user_id'], role='trainer').all()
+
+    response = Response(data={})
+
+    response.data['ok'] = True
+    response.data['trainers'] = []
+    for trainer in trainers:
+        response.data['trainers'].append(UserSerializer(trainer,include=["username","user_id"]).data)
+        meeting_details = {}
+        meetings = models.Meetings.objects.filter(trainer_id=trainer).all()
+        classroom = models.Classroom.objects.filter(trainer_id=trainer).first()
+        if classroom:
+            response.data['trainers'][-1]['classroom'] = classroom.title
+        else:
+            response.data['trainers'][-1]['classroom'] = 'Currently not teaching'
+        response.data['trainers'][-1]['meetings'] = MeetingSerializer(meetings,many=True).data    
+
+    return response
