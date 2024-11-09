@@ -107,7 +107,8 @@ def create_classroom(request: Request):
 
     for member in request.data['members']:
         user = User.objects.get(pk=member)
-        user.class_id = new_class.class_id
+        user.class_id = new_class
+        user.save()
         new_class.members.add(user)
     return Response({"ok": True})
 
