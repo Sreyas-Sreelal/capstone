@@ -506,3 +506,29 @@ def get_trainer_details_for_manager(request:Request):
         response.data['trainers'][-1]['meetings'] = MeetingSerializer(meetings,many=True).data    
 
     return response
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_student_details(request:Request):
+    response = Response(data={})
+    response.data['ok'] = True
+    access_token = AccessToken(request.headers['token'])
+    if access_token.payload['role'] != 'employee':
+        return Response({"ok": False, "error": "You are not allowed to perform this operation"}, status=401)
+
+    user = User.objects.filter(pk=access_token.payload['user_id']).get()
+    response.data['user'] = UserSerializer(user,include=['username','user_id']).data
+
+    response.data['classroom'] = ClassroomSerializer(user.class_id).data
+    response.data['trainer'] = user.class_id.trainer_id.username
+    response.data['manager'] = user.class_id.manager_id.username
+    meetings = models.Meetings.objects.filter(trainer_id=user.class_id.trainer_id,classroom_id=user.class_id).all()
+    meeting_count = models.Meetings.objects.filter(trainer_id=user.class_id.trainer_id,classroom_id=user.class_id).count()
+    total = 0
+    for meeting in meetings:
+        participants = meeting.participants.all()
+        if user in participants:
+            total += 1
+    response.data['attendance'] = (total/meeting_count) * 100
+    
+    return response
