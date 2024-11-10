@@ -191,10 +191,10 @@ def get_employees_attendance_list(request: Request):
 
     today_date = request.data.get('date', datetime.date.today())
 
-    if not models.Meetings.objects.filter(meeting_date=today_date).exists():
+    if not models.Meetings.objects.filter(meeting_date=today_date,trainer_id=access_token.payload['user_id'],classroom_id=classroom).exists():
         return Response({"ok": False, "error": "No meetings held today!"})
 
-    meeting = models.Meetings.objects.filter(meeting_date=today_date).get()
+    meeting = models.Meetings.objects.filter(meeting_date=today_date,trainer_id=access_token.payload['user_id'],classroom_id=classroom).get()
     participants = meeting.participants.all()
     for member in response.data["members"]:
         user = User.objects.filter(pk=member['user_id']).get()
@@ -413,6 +413,20 @@ def get_manager_dashboard_details(request: Request):
             modules.append(ModuleSerializer(module).data)
 
         response.data["classes"][-1]["modules"] = modules
+
+        meetings = models.Meetings.objects.filter(classroom_id=classes,conducted=True).all()
+        meeting_count = models.Meetings.objects.filter(classroom_id=classes,conducted=True).count()
+        # get all meetings
+        if meeting_count > 0:
+            total_employees = response.data['classroom_count']
+            avg = 0
+            for meeting in meetings:
+                avg += meeting.participants.count() / total_employees
+            avg/=meeting_count
+            avg*=100
+            response.data['classes'][-1]['average_attendance'] = avg
+        else:
+            response.data['classes'][-1]['average_attendance'] = 0
     for classroom in response.data['classes']:
         start_date = datetime.datetime.strptime(
             classroom['start_date'], '%Y-%m-%d')
