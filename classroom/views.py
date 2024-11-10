@@ -440,6 +440,9 @@ def get_manager_dashboard_details(request: Request):
     response.data['trainer_count'] = User.objects.filter(
         manager_id=access_token.payload['user_id'], role='trainer').count()
 
+    response.data['employees_not_under_training'] = User.objects.filter(manager_id=access_token.payload['user_id'], role='employee').filter(Q(class_id=None)).count()
+    response.data['employees_under_training'] = response.data['employees_under_manager_count'] - response.data['employees_not_under_training']
+
     return response
 
 
