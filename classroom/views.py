@@ -23,10 +23,19 @@ from django.db.models import Q
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def get_available_trainers(request: Request):
-    trainers = User.objects.filter(role='trainer').all()
+    access_token = AccessToken(request.headers['token'])
+    if access_token.payload['role'] != 'manager':
+        return Response({"ok": False, "error": "You are not allowed to perform this operation"}, status=401)
+    trainers = list(User.objects.filter(role='trainer').all())
+    classroms = models.Classroom.objects.all()
+    for classes in classroms:
+        trainers.remove(classes.trainer_id)
+    print(list(trainers))
+    
     response = Response()
     response.data = {"ok": True, "results": []}
     for trainer in trainers:
+        print("asd",trainer)
         response.data["results"].append(
             {"value": trainer.user_id, "label": trainer.username})
     return response
