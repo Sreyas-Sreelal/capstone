@@ -453,13 +453,17 @@ def get_manager_dashboard_details(request: Request):
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
-def get_employees_under_manager(request: Request):
+def get_employees_under_manager(request: Request,query=""):
     access_token = AccessToken(request.headers['token'])
     if access_token.payload['role'] != 'manager':
         return Response({"ok": False, "error": "You are not allowed to perform this operation"}, status=401)
 
-    employees = User.objects.filter(
-        manager_id=access_token.payload['user_id'], role='employee').all()
+    if query != "":
+        employees = User.objects.filter(
+            manager_id=access_token.payload['user_id'], role='employee',username__contains=query).all()
+    else:    
+        employees = User.objects.filter(
+            manager_id=access_token.payload['user_id'], role='employee').all()
 
     response = Response(data={})
     response.data["ok"] = True
