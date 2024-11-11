@@ -251,7 +251,7 @@ def get_absentees_list(request: Request):
 
     users = []
 
-    meeting = models.Meetings.objects.filter(meeting_date=today_date).get()
+    meeting = models.Meetings.objects.filter(meeting_date=today_date).first()
 
     participants = meeting.participants.all()
 
