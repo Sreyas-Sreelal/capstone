@@ -191,10 +191,11 @@ def get_employees_attendance_list(request: Request):
 
     today_date = request.data.get('date', datetime.date.today())
 
-    if not models.Meetings.objects.filter(meeting_date=today_date,trainer_id=access_token.payload['user_id'],classroom_id=classroom).exists():
+    if not models.Meetings.objects.filter(meeting_date=today_date, trainer_id=access_token.payload['user_id'], classroom_id=classroom).exists():
         return Response({"ok": False, "error": "No meetings held today!"})
 
-    meeting = models.Meetings.objects.filter(meeting_date=today_date,trainer_id=access_token.payload['user_id'],classroom_id=classroom).get()
+    meeting = models.Meetings.objects.filter(
+        meeting_date=today_date, trainer_id=access_token.payload['user_id'], classroom_id=classroom).get()
     participants = meeting.participants.all()
     for member in response.data["members"]:
         user = User.objects.filter(pk=member['user_id']).get()
@@ -414,16 +415,21 @@ def get_manager_dashboard_details(request: Request):
 
         response.data["classes"][-1]["modules"] = modules
 
-        meetings = models.Meetings.objects.filter(classroom_id=classes,conducted=True).all()
-        meeting_count = models.Meetings.objects.filter(classroom_id=classes,conducted=True).count()
+        meetings = models.Meetings.objects.filter(
+            classroom_id=classes, conducted=True).all()
+        meeting_count = models.Meetings.objects.filter(
+            classroom_id=classes, conducted=True).count()
+        response.data['employees_under_manager_count'] = User.objects.filter(
+            manager_id=access_token.payload['user_id'], role='employee').count()
+
         # get all meetings
         if meeting_count > 0:
-            total_employees = response.data['classroom_count']
+            total_employees = response.data['employees_under_manager_count']
             avg = 0
             for meeting in meetings:
                 avg += meeting.participants.count() / total_employees
-            avg/=meeting_count
-            avg*=100
+            avg /= meeting_count
+            avg *= 100
             response.data['classes'][-1]['average_attendance'] = avg
         else:
             response.data['classes'][-1]['average_attendance'] = 0
@@ -434,14 +440,13 @@ def get_manager_dashboard_details(request: Request):
         classroom['completion_timeline'] = ((datetime.datetime.today(
         ) - start_date).days / (end_date - start_date).days) * 100
 
-    response.data['employees_under_manager_count'] = User.objects.filter(
-        manager_id=access_token.payload['user_id'], role='employee').count()
-
     response.data['trainer_count'] = User.objects.filter(
         manager_id=access_token.payload['user_id'], role='trainer').count()
 
-    response.data['employees_not_under_training'] = User.objects.filter(manager_id=access_token.payload['user_id'], role='employee').filter(Q(class_id=None)).count()
-    response.data['employees_under_training'] = response.data['employees_under_manager_count'] - response.data['employees_not_under_training']
+    response.data['employees_not_under_training'] = User.objects.filter(
+        manager_id=access_token.payload['user_id'], role='employee').filter(Q(class_id=None)).count()
+    response.data['employees_under_training'] = response.data['employees_under_manager_count'] - \
+        response.data['employees_not_under_training']
 
     return response
 
@@ -469,7 +474,7 @@ def get_employees_under_manager(request: Request):
             response.data["employees"][-1]["classroom"] = "Not enrolled in any Classes"
 
         meetings = models.Meetings.objects.filter(
-            classroom_id=employee.class_id,conducted=True).all()
+            classroom_id=employee.class_id, conducted=True).all()
         total_meetings = models.Meetings.objects.filter(
             classroom_id=employee.class_id, conducted=True).count()
         attended_meetings = 0
@@ -483,9 +488,10 @@ def get_employees_under_manager(request: Request):
             response.data["employees"][-1]["attendance_percentage"] = 0
     return response
 
+
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
-def get_trainer_details_for_manager(request:Request):
+def get_trainer_details_for_manager(request: Request):
     access_token = AccessToken(request.headers['token'])
     if access_token.payload['role'] != 'manager':
         return Response({"ok": False, "error": "You are not allowed to perform this operation"}, status=401)
@@ -498,7 +504,8 @@ def get_trainer_details_for_manager(request:Request):
     response.data['ok'] = True
     response.data['trainers'] = []
     for trainer in trainers:
-        response.data['trainers'].append(UserSerializer(trainer,include=["username","user_id"]).data)
+        response.data['trainers'].append(UserSerializer(
+            trainer, include=["username", "user_id"]).data)
         meeting_details = {}
         meetings = models.Meetings.objects.filter(trainer_id=trainer).all()
         classroom = models.Classroom.objects.filter(trainer_id=trainer).first()
@@ -506,13 +513,15 @@ def get_trainer_details_for_manager(request:Request):
             response.data['trainers'][-1]['classroom'] = classroom.title
         else:
             response.data['trainers'][-1]['classroom'] = 'Currently not teaching'
-        response.data['trainers'][-1]['meetings'] = MeetingSerializer(meetings,many=True).data    
+        response.data['trainers'][-1]['meetings'] = MeetingSerializer(
+            meetings, many=True).data
 
     return response
 
+
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
-def get_student_details(request:Request):
+def get_student_details(request: Request):
     response = Response(data={})
     response.data['ok'] = True
     access_token = AccessToken(request.headers['token'])
@@ -520,18 +529,67 @@ def get_student_details(request:Request):
         return Response({"ok": False, "error": "You are not allowed to perform this operation"}, status=401)
 
     user = User.objects.filter(pk=access_token.payload['user_id']).get()
-    response.data['user'] = UserSerializer(user,include=['username','user_id']).data
+    response.data['user'] = UserSerializer(
+        user, include=['username', 'user_id']).data
 
     response.data['classroom'] = ClassroomSerializer(user.class_id).data
     response.data['trainer'] = user.class_id.trainer_id.username
     response.data['manager'] = user.class_id.manager_id.username
-    meetings = models.Meetings.objects.filter(trainer_id=user.class_id.trainer_id,classroom_id=user.class_id).all()
-    meeting_count = models.Meetings.objects.filter(trainer_id=user.class_id.trainer_id,classroom_id=user.class_id).count()
+    meetings = models.Meetings.objects.filter(
+        trainer_id=user.class_id.trainer_id, classroom_id=user.class_id).all()
+    meeting_count = models.Meetings.objects.filter(
+        trainer_id=user.class_id.trainer_id, classroom_id=user.class_id).count()
     total = 0
     for meeting in meetings:
         participants = meeting.participants.all()
         if user in participants:
             total += 1
     response.data['attendance'] = (total/meeting_count) * 100
+
+    return response
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_trainer_dashboard_details(request: Request):
+    response = Response(data={})
+    response.data["ok"] = True
+    access_token = AccessToken(request.headers['token'])
+    if access_token.payload['role'] != 'trainer':
+        return Response({"ok": False, "error": "You are not allowed to perform this operation"}, status=401)
+
+    trainer = User.objects.get(pk=access_token.payload['user_id'])
+    classroom = models.Classroom.objects.filter(trainer_id=trainer).get()
+    response.data['user'] = UserSerializer(
+        trainer, include=['username', 'user_id']).data
+    response.data['classroom'] = ClassroomSerializer(classroom).data
+    meetings = models.Meetings.objects.filter(
+        trainer_id=trainer, classroom_id=classroom, conducted=True).all()
+    response.data['meetings_conducted'] = meetings.count()
     
+    total_employees = classroom.members.count()
+    response.data['total_students'] = total_employees
+
+    meeting_count = response.data['meetings_conducted']
+    
+    response.data['average_attendance'] = 0
+    if meeting_count >0:
+        avg = 0
+        for meeting in meetings:
+            avg += meeting.participants.count() / total_employees
+        avg /= meeting_count
+        avg *= 100
+        response.data['average_attendance'] = avg
+    
+    total_expected = 0
+    response.data['percent_progress'] = 0
+
+    for module in classroom.curriculum.modules.all():
+        total_expected += module.expected_meetings
+    print("total expeted",total_expected)
+    if total_expected > 0:
+        response.data['percent_progress'] =int ((
+            response.data['meetings_conducted']/total_expected)*100)
+    
+
     return response
