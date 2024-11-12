@@ -228,7 +228,7 @@ def update_attendance(request: Request):
     if not models.Meetings.objects.filter(trainer_id=access_token.payload['user_id'], meeting_date=today_date, conducted=True).exists():
         return Response({"ok": False, "error": "No meeting held today!"})
 
-    meeting = models.Meetings.objects.filter(meeting_date=today_date).get()
+    meeting = models.Meetings.objects.filter(meeting_date=today_date, trainer_id=access_token.payload['user_id']).get()
     participants = meeting.participants.all()
 
     for user in request.data['users']:
@@ -260,7 +260,7 @@ def get_absentees_list(request: Request):
 
     users = []
 
-    meeting = models.Meetings.objects.filter(meeting_date=today_date).first()
+    meeting = models.Meetings.objects.filter(meeting_date=today_date,trainer_id=access_token.payload['user_id'], conducted=True).get()
 
     participants = meeting.participants.all()
 
@@ -557,7 +557,10 @@ def get_student_details(request: Request):
         participants = meeting.participants.all()
         if user in participants:
             total += 1
-    response.data['attendance'] = (total/meeting_count) * 100
+    if meeting_count !=0:
+        response.data['attendance'] = (total/meeting_count) * 100
+    else:
+        response.data['attendance'] = 0
 
     return response
 
