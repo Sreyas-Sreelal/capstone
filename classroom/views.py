@@ -433,12 +433,15 @@ def get_manager_dashboard_details(request: Request):
 
         # get all meetings
         if meeting_count > 0:
-            total_employees = response.data['employees_under_manager_count']
+            total_employees = classes.members.count()
             avg = 0
+
             for meeting in meetings:
-                avg += meeting.participants.count() / total_employees
+                avg += (meeting.participants.count() / total_employees) * 100
+            print(avg,meeting_count)
             avg /= meeting_count
-            avg *= 100
+            print(avg)
+            #avg *= 100
             response.data['classes'][-1]['average_attendance'] = avg
         else:
             response.data['classes'][-1]['average_attendance'] = 0
